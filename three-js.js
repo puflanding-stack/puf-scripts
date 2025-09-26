@@ -748,7 +748,7 @@ class PufParticleSystem {
 
             // Logo
             if (this.logoContainer) {
-                const logoAnimation = { opacity: 1 };
+                const logoAnimation = { opacity: parseFloat(this.logoContainer.style.opacity) || 0 };
                 this.paramAnimator.animateTo(logoAnimation, 'opacity', 0, transitionDuration, () => {
                     this.logoContainer.style.display = 'none';
                 }, () => {
@@ -826,20 +826,18 @@ class PufParticleSystem {
             document.body.classList.add('home-mode');
 
             // Make elements visible before animation
-            if (this.logoContainer) this.logoContainer.style.display = 'block';
+            if (this.logoContainer) {
+                this.logoContainer.style.display = 'block';
+                const logoAnimation = { opacity: parseFloat(this.logoContainer.style.opacity) || 0 };
+                this.paramAnimator.animateTo(logoAnimation, 'opacity', 1, transitionDuration, null, () => {
+                    this.logoContainer.style.opacity = logoAnimation.opacity;
+                });
+            }
             if (this.innerGradientOverlay) this.innerGradientOverlay.style.display = 'block';
             if (this.innerParticles) this.innerParticles.visible = true;
             if (this.backgroundSphere) {
                 this.backgroundSphere.visible = true;
                 this.backgroundSphere.material.transparent = true;
-            }
-
-            // Logo
-            if (this.logoContainer) {
-                const logoAnimation = { opacity: 0 };
-                this.paramAnimator.animateTo(logoAnimation, 'opacity', 1, transitionDuration, null, () => {
-                    this.logoContainer.style.opacity = logoAnimation.opacity;
-                });
             }
 
             // Inner Sphere and Gradient

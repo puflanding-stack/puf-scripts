@@ -1,0 +1,95 @@
+<style>
+
+.link-radial {
+    position: relative; 
+    overflow: hidden;   
+    --hover-bg: #ffffff;
+    --text-normal: #ffffff;
+    --text-hover: #000000;
+    --clip-path: circle(0% at 50% 50%);
+    
+    /* Kenarlık rengi için geçiş eklendi */
+    transition: border-color 0.5s ease-in-out; 
+  }
+  body.about-mode .link-radial {
+    --hover-bg: #000000;
+    --text-normal: #000000;
+    --text-hover: #ffffff;
+  }
+  .link-radial::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--hover-bg);
+    clip-path: var(--clip-path);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .link-radial .link {
+    position: relative;
+    z-index: 1;
+    color: var(--text-normal);
+    transition: color 0.4s ease-in-out;
+  }
+  
+  /* Sayfa geçiş animasyonları için stiller */
+  .home-container, .about-container {
+      transition: opacity 0.5s ease-in-out; 
+  }
+  
+  /* Logo ve navbar link renk geçişleri (radial hariç) */
+  .link-block:not(.link-radial) .link {
+      transition: color 0.5s ease-in-out;
+  }
+  
+  /* about-mode aktifken renkler */
+  body.about-mode .link-block:not(.link-radial) .link {
+      color: #000000 !important;
+  }
+  /* DEĞİŞİKLİK: .link-radial için kenarlık rengi eklendi */
+  body.about-mode .link-radial {
+      border-color: #000000 !important;
+  }
+  
+  /* home-mode aktifken renkler */
+  body.home-mode .link-block:not(.link-radial) .link {
+      color: #ffffff !important;
+  }
+  /* DEĞİŞİKLİK: .link-radial için kenarlık rengi eklendi */
+  body.home-mode .link-radial {
+      border-color: #ffffff !important;
+  }
+</style>  
+
+<script>
+
+// --- RADIAL HOVER ANİMASYONU ---
+function initializeRadialAnimations() {
+  var buttons = document.querySelectorAll('.link-radial');
+  buttons.forEach(function(button) {
+    var textElement = button.querySelector('.link') || button;
+    var animationTimeline = null;
+    function getCssVar(name, fallback) { return getComputedStyle(button).getPropertyValue(name).trim() || fallback; }
+    
+    button.addEventListener('mouseenter', function(event) {
+      if (animationTimeline) animationTimeline.kill();
+      var rect = button.getBoundingClientRect();
+      var x = (event.clientX - rect.left) / rect.width * 100, y = (event.clientY - rect.top) / rect.height * 100;
+      var hoverTextColor = getCssVar('--text-hover', '#000000');
+      animationTimeline = gsap.timeline()
+        .to(button, { '--clip-path': 'circle(150% at ' + x + '% ' + y + '%)', duration: 0.5, ease: 'power2.out' })
+        .to(textElement, { color: hoverTextColor, duration: 0.2, delay: 0.1 }, 0);
+    });
+    
+    button.addEventListener('mouseleave', function(event) {
+      if (animationTimeline) animationTimeline.kill();
+      var rect = button.getBoundingClientRect();
+      var x = (event.clientX - rect.left) / rect.width * 100, y = (event.clientY - rect.top) / rect.height * 100;
+      var normalTextColor = getCssVar('--text-normal', '#ffffff');
+      animationTimeline = gsap.timeline()
+        .to(button, { '--clip-path': 'circle(0% at ' + x + '% ' + y + '%)', duration: 0.35, ease: 'power2.in' })
+        .to(textElement, { color: normalTextColor, duration: 0.15 }, 0);
+    });
+  });
+}
+</script>
