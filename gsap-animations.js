@@ -1,3 +1,4 @@
+/*
 document.addEventListener('DOMContentLoaded', function() {
   if (typeof gsap === 'undefined') {
     return;
@@ -450,3 +451,4 @@ document.addEventListener('DOMContentLoaded', function() {
   AboutPDark.init();
   AboutHeadlines.init();
 });
+*/
