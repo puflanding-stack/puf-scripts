@@ -1,0 +1,166 @@
+<!-- PUF - GENEL SİTE FONKSİYONLARI BAŞLANGIÇ (v4 - Kenarlık Rengi Eklendi) -->
+
+<!-- === BÖLÜM 1: GEREKLİ STİLLER === -->
+<style>
+/* Radial hover stilleri */
+.link-radial {
+  position: relative; 
+  overflow: hidden;   
+  --hover-bg: #ffffff;
+  --text-normal: #ffffff;
+  --text-hover: #000000;
+  --clip-path: circle(0% at 50% 50%);
+  
+  /* Kenarlık rengi için geçiş eklendi */
+  transition: border-color 0.5s ease-in-out; 
+}
+body.about-mode .link-radial {
+  --hover-bg: #000000;
+  --text-normal: #000000;
+  --text-hover: #ffffff;
+}
+.link-radial::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--hover-bg);
+  clip-path: var(--clip-path);
+  pointer-events: none;
+  z-index: 0;
+}
+.link-radial .link {
+  position: relative;
+  z-index: 1;
+  color: var(--text-normal);
+  transition: color 0.4s ease-in-out;
+}
+
+/* Sayfa geçiş animasyonları için stiller */
+.home-container, .about-container {
+    transition: opacity 0.5s ease-in-out; 
+}
+
+/* Logo ve navbar link renk geçişleri (radial hariç) */
+.link-block:not(.link-radial) .link {
+    transition: color 0.5s ease-in-out;
+}
+
+/* about-mode aktifken renkler */
+body.about-mode .link-block:not(.link-radial) .link {
+    color: #000000 !important;
+}
+/* DEĞİŞİKLİK: .link-radial için kenarlık rengi eklendi */
+body.about-mode .link-radial {
+    border-color: #000000 !important;
+}
+
+/* home-mode aktifken renkler */
+body.home-mode .link-block:not(.link-radial) .link {
+    color: #ffffff !important;
+}
+/* DEĞİŞİKLİK: .link-radial için kenarlık rengi eklendi */
+body.home-mode .link-radial {
+    border-color: #ffffff !important;
+}
+</style>
+
+<!-- === BÖLÜM 2: FONKSİYONEL KOD === -->
+<script>
+(function() {
+  // --- GSAP YÜKLEYİCİ ---
+  function ensureGsap(callback) {
+    if (window.gsap) return callback();
+    var script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js';
+    script.onload = callback;
+    document.head.appendChild(script);
+  }
+
+  // --- SAYFA GEÇİŞ VE RENK YÖNETİMİ ---
+  function initializeNavigation() {
+    const homeButton = document.querySelector('.link-block.home');
+    const aboutButton = document.querySelector('.link-block.about');
+    const homeContainer = document.querySelector('.home-container');
+    const aboutContainer = document.querySelector('.about-container');
+    const radialLinkText = document.querySelector('.link-radial .link');
+    const body = document.body;
+
+    if (!homeButton || !aboutButton || !homeContainer || !aboutContainer) {
+      console.error("PUF Navigasyon: Gerekli elementler bulunamadı.");
+      return;
+    }
+
+    // Başlangıç durumu
+    body.classList.add('home-mode');
+    gsap.set(homeContainer, { opacity: 1, display: 'flex' });
+    gsap.set(aboutContainer, { opacity: 0, display: 'none' });
+
+    aboutButton.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (body.classList.contains('about-mode')) return;
+      if (window.pufParticleSystem) {
+        window.pufParticleSystem.updateParticleColors('about');
+      }
+      gsap.timeline()
+        .to(homeContainer, { opacity: 0, duration: 0.4, onComplete: () => gsap.set(homeContainer, { display: 'none' }) })
+        .set(aboutContainer, { display: 'flex' })
+        .to(aboutContainer, { opacity: 1, duration: 0.4 });
+    });
+
+    homeButton.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (body.classList.contains('home-mode')) return;
+      if (window.pufParticleSystem) {
+        window.pufParticleSystem.updateParticleColors('home');
+      }
+      gsap.timeline()
+        .to(aboutContainer, { opacity: 0, duration: 0.4, onComplete: () => gsap.set(aboutContainer, { display: 'none' }) })
+        .set(homeContainer, { display: 'flex' })
+        .to(homeContainer, { opacity: 1, duration: 0.4 });
+    });
+  }
+
+  // --- RADIAL HOVER ANİMASYONU ---
+  function initializeRadialAnimations() {
+    var buttons = document.querySelectorAll('.link-radial');
+    buttons.forEach(function(button) {
+      var textElement = button.querySelector('.link') || button;
+      var animationTimeline = null;
+      function getCssVar(name, fallback) { return getComputedStyle(button).getPropertyValue(name).trim() || fallback; }
+      
+      button.addEventListener('mouseenter', function(event) {
+        if (animationTimeline) animationTimeline.kill();
+        var rect = button.getBoundingClientRect();
+        var x = (event.clientX - rect.left) / rect.width * 100, y = (event.clientY - rect.top) / rect.height * 100;
+        var hoverTextColor = getCssVar('--text-hover', '#000000');
+        animationTimeline = gsap.timeline()
+          .to(button, { '--clip-path': 'circle(150% at ' + x + '% ' + y + '%)', duration: 0.5, ease: 'power2.out' })
+          .to(textElement, { color: hoverTextColor, duration: 0.2, delay: 0.1 }, 0);
+      });
+      
+      button.addEventListener('mouseleave', function(event) {
+        if (animationTimeline) animationTimeline.kill();
+        var rect = button.getBoundingClientRect();
+        var x = (event.clientX - rect.left) / rect.width * 100, y = (event.clientY - rect.top) / rect.height * 100;
+        var normalTextColor = getCssVar('--text-normal', '#ffffff');
+        animationTimeline = gsap.timeline()
+          .to(button, { '--clip-path': 'circle(0% at ' + x + '% ' + y + '%)', duration: 0.35, ease: 'power2.in' })
+          .to(textElement, { color: normalTextColor, duration: 0.15 }, 0);
+      });
+    });
+  }
+
+  // --- BAŞLATMA ---
+  function runAll() {
+    initializeNavigation();
+    initializeRadialAnimations();
+  }
+
+  if (document.readyState === 'complete') {
+    ensureGsap(runAll);
+  } else {
+    window.addEventListener('load', () => ensureGsap(runAll));
+  }
+})();
+</script>
+<!-- PUF - GENEL SİTE FONKSİYONLARI BİTİŞ -->

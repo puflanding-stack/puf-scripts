@@ -281,7 +281,6 @@ class PufParticleSystem {
         this.createGradientOverlays();
         this.createLogo();
         this.updateResponsiveSettings();
-        this.setupPageWatcher();
         this.preventZoom();
         this.animate();
 
@@ -568,48 +567,6 @@ class PufParticleSystem {
         this.updateInnerGradientOverlay();
     }
 
-    setupPageWatcher() {
-        const aboutContainer = document.querySelector('.about-container');
-        const homeContainer = document.querySelector('.home-container');
-        
-        const checkCurrentPage = () => {
-            let aboutVisible = false;
-            
-            if (aboutContainer) {
-                const aboutStyle = window.getComputedStyle(aboutContainer);
-                aboutVisible = aboutStyle.display !== 'none' && aboutStyle.opacity !== '0';
-            }
-            
-            const newMode = aboutVisible ? 'about' : 'home';
-            
-            if (newMode !== this.currentPageMode) {
-                this.updateParticleColors(newMode);
-            }
-        };
-        
-        if (aboutContainer) {
-            const aboutObserver = new MutationObserver(checkCurrentPage);
-            aboutObserver.observe(aboutContainer, { 
-                attributes: true, 
-                attributeFilter: ['style', 'class'] 
-            });
-        }
-        
-        if (homeContainer) {
-            const homeObserver = new MutationObserver(checkCurrentPage);
-            homeObserver.observe(homeContainer, { 
-                attributes: true, 
-                attributeFilter: ['style', 'class'] 
-            });
-        }
-        
-        document.body.style.transition = 'background-color 1s ease';
-        
-        checkCurrentPage();
-        
-        setInterval(checkCurrentPage, 1000);
-    }
-
     getCurrentBreakpoint() {
         const width = window.innerWidth;
         if (width <= this.breakpoints.mobile) return 'mobile';
@@ -777,7 +734,7 @@ class PufParticleSystem {
     }
 
     updateParticleColors(mode = 'home') {
-        if (this.isTransitioning) return;
+        if (this.isTransitioning && this.currentPageMode === mode) return;
         this.isTransitioning = true;
 
         this.currentPageMode = mode;
@@ -786,6 +743,8 @@ class PufParticleSystem {
 
         if (mode === 'about') {
             document.body.style.backgroundColor = '#EBEBEB';
+            document.body.classList.add('about-mode');
+            document.body.classList.remove('home-mode');
 
             // Logo
             if (this.logoContainer) {
@@ -827,120 +786,6 @@ class PufParticleSystem {
                  this.isTransitioning = false;
             }
             
-            const radialButton = document.querySelector('.link-radial.js-hover');
-            if (radialButton) {
-                radialButton.style.setProperty('--light', '#000000');
-                radialButton.style.setProperty('--dark', '#ffffff');
-                radialButton.style.borderColor = '#000000';
-                radialButton.style.color = '#000000';
-                
-                const linkText = radialButton.querySelector('.link');
-                if (linkText) {
-                    linkText.style.color = '#000000';
-                }
-            }
-            
-            document.body.classList.add('about-mode');
-            console.log('🔄 About mode aktifleştirildi - Scroll debug başlıyor...');
-            
-            if (this.renderer && this.renderer.domElement) {
-                this.renderer.domElement.style.zIndex = '5';
-                this.renderer.domElement.style.display = 'block';
-                this.renderer.domElement.style.visibility = 'visible';
-                this.renderer.domElement.style.opacity = '1';
-                this.renderer.domElement.style.position = 'fixed';
-                this.renderer.domElement.style.pointerEvents = 'none';
-                this.renderer.domElement.style.top = '0';
-                this.renderer.domElement.style.left = '0';
-                this.renderer.domElement.style.width = '100vw';
-                this.renderer.domElement.style.height = '100vh';
-                console.log('🎨 Canvas about mode için ayarlandı: z-index 5, pointer-events none');
-            }
-            
-            document.documentElement.style.overflow = 'auto';
-            document.documentElement.style.overflowY = 'scroll';
-            document.documentElement.style.height = '100%';
-            document.body.style.overflow = 'auto';
-            document.body.style.overflowY = 'scroll';
-            document.body.style.height = 'auto';
-            document.body.style.minHeight = '100vh';
-            document.body.style.maxHeight = 'none';
-            document.body.style.position = 'static';
-            
-            const pageContainer = document.querySelector('.page-container');
-            if (pageContainer) {
-                pageContainer.style.overflow = 'visible';
-                pageContainer.style.overflowY = 'visible';
-            }
-            
-            const layout = document.querySelector('.layout');
-            if (layout) {
-                layout.style.overflow = 'visible';
-                layout.style.overflowY = 'visible';
-                layout.style.height = 'auto';
-                layout.style.minHeight = '100vh';
-                layout.style.position = 'static';
-            }
-            
-            const aboutContainer = document.querySelector('.about-container');
-            if (aboutContainer) {
-                aboutContainer.style.overflow = 'visible';
-                aboutContainer.style.overflowY = 'visible';
-                aboutContainer.style.height = 'auto';
-                aboutContainer.style.minHeight = '200vh';
-                aboutContainer.style.position = 'static';
-                aboutContainer.style.paddingBottom = '100vh';
-                
-                console.log('🎨 Particle system: About container layout updated, not touching display/opacity');
-                
-                const width = window.innerWidth;
-                if (width <= 479) {
-                    aboutContainer.style.gap = '120px';
-                } else if (width <= 767) {
-                    aboutContainer.style.gap = '220px';
-                } else if (width <= 991) {
-                    aboutContainer.style.gap = '280px';
-                } else {
-                    aboutContainer.style.gap = '350px';
-                }
-            }
-            
-            const homeContainer = document.querySelector('.home-container');
-            if (homeContainer) {
-                homeContainer.style.display = 'none';
-                homeContainer.style.height = '0';
-                homeContainer.style.overflow = 'hidden';
-            }
-            
-            const homeWrap = document.querySelector('.home-wrap');
-            if (homeWrap) {
-                homeWrap.style.height = 'auto';
-                homeWrap.style.minHeight = 'auto';
-            }
-            
-            const allParents = document.querySelectorAll('*');
-            allParents.forEach(element => {
-                const computedStyle = window.getComputedStyle(element);
-                if (computedStyle.overflow === 'hidden' && 
-                    !element.classList.contains('w-embed') &&
-                    !element.classList.contains('w-slider') &&
-                    !element.classList.contains('w-lightbox') &&
-                    element.tagName.toLowerCase() !== 'svg') {
-                    element.style.overflow = 'visible';
-                }
-            });
-            
-            if (window.lenis) {
-                window.lenis.destroy();
-                window.lenis = null;
-                console.log('🚫 Lenis tamamen devre dışı bırakıldı - Native scroll aktif');
-            }
-            
-            console.log('✅ Scroll ayarları tamamlandı. Test için about container içeriğini scroll etmeyi deneyin.');
-            console.log('🔍 About container yüksekliği:', aboutContainer ? aboutContainer.scrollHeight + 'px' : 'Bulunamadı');
-            console.log('🔍 Body scroll yüksekliği:', document.body.scrollHeight + 'px');
-            console.log('🔍 Viewport yüksekliği:', window.innerHeight + 'px');
-
             if (this.outerMaterial && this.outerParticles) {
                 const vertexShader = `
                     void main() {
@@ -977,6 +822,8 @@ class PufParticleSystem {
             }
         } else {
             document.body.style.backgroundColor = '#000000';
+            document.body.classList.remove('about-mode');
+            document.body.classList.add('home-mode');
 
             // Make elements visible before animation
             if (this.logoContainer) this.logoContainer.style.display = 'block';
@@ -1021,91 +868,6 @@ class PufParticleSystem {
                 this.isTransitioning = false;
             }
             
-            document.body.classList.remove('about-mode');
-            
-            if (this.renderer && this.renderer.domElement) {
-                this.renderer.domElement.style.zIndex = '-1000';
-                this.renderer.domElement.style.display = 'block';
-                this.renderer.domElement.style.visibility = 'visible';
-                this.renderer.domElement.style.opacity = '1';
-                this.renderer.domElement.style.position = 'fixed';
-                this.renderer.domElement.style.pointerEvents = 'none';
-                console.log('🎨 Canvas home mode için ayarlandı: z-index -1000, pointer-events none');
-            }
-            
-            document.documentElement.style.overflow = '';
-            document.documentElement.style.overflowY = '';
-            document.documentElement.style.height = '';
-            document.body.style.overflow = '';
-            document.body.style.overflowY = '';
-            document.body.style.height = '';
-            document.body.style.maxHeight = '';
-            document.body.style.position = '';
-            
-            const pageContainer = document.querySelector('.page-container');
-            if (pageContainer) {
-                pageContainer.style.overflow = '';
-                pageContainer.style.overflowY = '';
-            }
-            
-            const layout = document.querySelector('.layout');
-            if (layout) {
-                layout.style.overflow = '';
-                layout.style.overflowY = '';
-                layout.style.height = '';
-                layout.style.minHeight = '';
-                layout.style.position = '';
-            }
-            
-            const aboutContainer = document.querySelector('.about-container');
-            if (aboutContainer) {
-                aboutContainer.style.overflow = '';
-                aboutContainer.style.overflowY = '';
-                aboutContainer.style.height = '';
-                aboutContainer.style.minHeight = '';
-                aboutContainer.style.position = '';
-                aboutContainer.style.paddingBottom = '';
-                aboutContainer.style.gap = '';
-                
-                console.log('🎨 Particle system: About container layout reset, not touching display/opacity');
-            }
-            
-            const homeContainer = document.querySelector('.home-container');
-            if (homeContainer) {
-                homeContainer.style.display = '';
-                homeContainer.style.height = '';
-                homeContainer.style.overflow = '';
-            }
-            
-            const homeWrap = document.querySelector('.home-wrap');
-            if (homeWrap) {
-                homeWrap.style.height = '';
-                homeWrap.style.minHeight = '';
-            }
-            
-            const allElements = document.querySelectorAll('*[style*="overflow"]');
-            allElements.forEach(element => {
-                if (!element.classList.contains('w-embed') &&
-                    !element.classList.contains('w-slider') &&
-                    !element.classList.contains('w-lightbox') &&
-                    element.tagName.toLowerCase() !== 'svg') {
-                    element.style.overflow = '';
-                }
-            });
-            
-            const radialButton = document.querySelector('.link-radial.js-hover');
-            if (radialButton) {
-                radialButton.style.removeProperty('--light');
-                radialButton.style.removeProperty('--dark');
-                radialButton.style.borderColor = '';
-                radialButton.style.color = '';
-                
-                const linkText = radialButton.querySelector('.link');
-                if (linkText) {
-                    linkText.style.color = '';
-                }
-            }
-            
             if (this.innerMaterial) this.innerMaterial.color.setHex(0xffffff);
             if (this.outerMaterial && this.outerParticles) {
                 const vertexShader = `
@@ -1140,29 +902,6 @@ class PufParticleSystem {
                 this.outerMaterial.needsUpdate = true;
                 
                 console.log('🎨 Home mode: Outer particles restored to GRAY (0.67,0.67,0.67)');
-            }
-            
-            if (!window.lenis && typeof Lenis !== 'undefined') {
-                setTimeout(() => {
-                    const homeLenis = new Lenis({
-                        duration: 1.2,
-                        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-                        smooth: true,
-                        smoothTouch: false,
-                        infinite: false
-                    });
-                    
-                    function homeRaf(time) {
-                        homeLenis.raf(time);
-                        requestAnimationFrame(homeRaf);
-                    }
-                    requestAnimationFrame(homeRaf);
-                    
-                    window.lenis = homeLenis;
-                    console.log('🔄 Home mode için Lenis restore edildi');
-                }, 100);
-            } else if (window.lenis) {
-                console.log('🔄 Home mode - Lenis zaten mevcut');
             }
         }
         
@@ -1482,5 +1221,5 @@ if (typeof module !== 'undefined' && module.exports) {
     window.PufParticleSystem = PufParticleSystem;
 }
   document.addEventListener('DOMContentLoaded', function() {
-    new PufParticleSystem();
+    window.pufParticleSystem = new PufParticleSystem();
   });
