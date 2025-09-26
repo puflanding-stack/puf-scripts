@@ -111,7 +111,7 @@ class SimpleExplosion {
             sizeAttenuation: true,
             transparent: true,
             opacity: 1.0,
-            blending: THREE.AdditiveBlending
+            blending: color === 0x000000 ? THREE.NormalBlending : THREE.AdditiveBlending
         });
 
         this.points = new THREE.Points(this.geometry, this.material);
@@ -371,6 +371,8 @@ class PufParticleSystem {
             color: 0xffffff,
             size: this.innerParams.size,
             sizeAttenuation: true,
+            transparent: true,
+            opacity: 1.0,
         });
 
         this.innerParticles = new THREE.Points(this.innerGeometry, this.innerMaterial);
@@ -739,7 +741,7 @@ class PufParticleSystem {
 
         this.currentPageMode = mode;
         
-        const transitionDuration = 1000;
+        const transitionDuration = mode === 'about' ? 300 : 1000;
 
         if (mode === 'about') {
             document.body.style.backgroundColor = '#EBEBEB';
@@ -781,6 +783,7 @@ class PufParticleSystem {
                     const newOpacity = 1 - animationProps.t;
                     this.backgroundSphere.material.opacity = newOpacity;
                     this.innerGradientOverlay.style.opacity = newOpacity;
+                    if (this.innerMaterial) this.innerMaterial.opacity = newOpacity;
                 });
             } else {
                  this.isTransitioning = false;
@@ -861,6 +864,7 @@ class PufParticleSystem {
                     const newOpacity = animationProps.t;
                     this.backgroundSphere.material.opacity = newOpacity;
                     this.innerGradientOverlay.style.opacity = newOpacity;
+                    if (this.innerMaterial) this.innerMaterial.opacity = newOpacity;
                 });
             } else {
                 this.isTransitioning = false;
