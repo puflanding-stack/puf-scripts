@@ -436,6 +436,10 @@ class PufParticleSystem {
 
 
     createOuterShader() {
+        const uniforms = {
+            color: { value: new THREE.Color(0xaaaaaa) }
+        };
+
         const vertexShader = `
             void main() {
                 vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
@@ -449,14 +453,16 @@ class PufParticleSystem {
         `;
 
         const fragmentShader = `
+            uniform vec3 color;
             void main() {
                 float dist = length(gl_PointCoord - vec2(0.5));
                 if (dist > 0.5) discard;
-                gl_FragColor = vec4(0.67, 0.67, 0.67, 1.0);
+                gl_FragColor = vec4(color, 1.0);
             }
         `;
 
         return new THREE.ShaderMaterial({
+            uniforms: uniforms,
             vertexShader: vertexShader,
             fragmentShader: fragmentShader,
             transparent: false
@@ -758,60 +764,43 @@ class PufParticleSystem {
                 });
             }
 
-            // Inner Sphere and Gradient
-            if (this.backgroundSphere && this.innerGradientOverlay) {
+            // Inner Sphere, Gradient, and Inner Particles
+            if (this.backgroundSphere && this.innerGradientOverlay && this.innerMaterial) {
                 this.backgroundSphere.material.transparent = true;
 
-                const animationProps = { t: 0 };
-                this.paramAnimator.animateTo(animationProps, 't', 1, transitionDuration, () => {
+                const sphereAnimation = { opacity: this.backgroundSphere.material.opacity };
+                this.paramAnimator.animateTo(sphereAnimation, 'opacity', 0, transitionDuration, () => {
                     this.backgroundSphere.visible = false;
-                    this.innerGradientOverlay.style.display = 'none';
-                    this.innerParticles.visible = false;
-                    this.isTransitioning = false;
                 }, () => {
-                    // Opacity
-                    const newOpacity = 1 - animationProps.t;
-                    this.backgroundSphere.material.opacity = newOpacity;
-                    this.innerGradientOverlay.style.opacity = newOpacity;
-                    if (this.innerMaterial) this.innerMaterial.opacity = newOpacity;
+                    this.backgroundSphere.material.opacity = sphereAnimation.opacity;
                 });
+
+                const gradientAnimation = { opacity: parseFloat(this.innerGradientOverlay.style.opacity) || 1 };
+                this.paramAnimator.animateTo(gradientAnimation, 'opacity', 0, transitionDuration, () => {
+                    this.innerGradientOverlay.style.display = 'none';
+                }, () => {
+                    this.innerGradientOverlay.style.opacity = gradientAnimation.opacity;
+                });
+
+                const innerParticleAnimation = { opacity: this.innerMaterial.opacity };
+                this.paramAnimator.animateTo(innerParticleAnimation, 'opacity', 0, transitionDuration, () => {
+                    this.innerParticles.visible = false;
+                    this.isTransitioning = false; // End transition after the last animation
+                }, () => {
+                    this.innerMaterial.opacity = innerParticleAnimation.opacity;
+                });
+
             } else {
                  this.isTransitioning = false;
             }
             
-            if (this.outerMaterial && this.outerParticles) {
-                const vertexShader = `
-                    void main() {
-                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-                        float distance = length(mvPosition.xyz);
-                        float baseSize = ${this.outerParams.size.toFixed(6)};
-                        float maxSize = ${this.outerParams.maxSize.toFixed(6)};
-                        float calculatedSize = (baseSize * 1000.0) / distance;
-                        gl_PointSize = min(calculatedSize, maxSize * 1000.0);
-                        gl_Position = projectionMatrix * mvPosition;
-                    }
-                `;
-
-                const fragmentShader = `
-                    void main() {
-                        float dist = length(gl_PointCoord - vec2(0.5));
-                        if (dist > 0.5) discard;
-                        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-                    }
-                `;
-
-                const newMaterial = new THREE.ShaderMaterial({
-                    vertexShader: vertexShader,
-                    fragmentShader: fragmentShader,
-                    transparent: false
+            if (this.outerMaterial) {
+                const startColor = this.outerMaterial.uniforms.color.value.clone();
+                const targetColor = new THREE.Color(0x000000);
+                const colorAnimation = { t: 0 };
+                this.paramAnimator.animateTo(colorAnimation, 't', 1, transitionDuration, null, () => {
+                    this.outerMaterial.uniforms.color.value.lerpColors(startColor, targetColor, colorAnimation.t);
                 });
-                
-                this.outerMaterial.dispose();
-                this.outerMaterial = newMaterial;
-                this.outerParticles.material = this.outerMaterial;
-                this.outerMaterial.needsUpdate = true;
-                
-                console.log('🎨 About mode: Outer particles set to BLACK (0,0,0)');
             }
         } else {
             document.body.style.backgroundColor = '#000000';
@@ -861,39 +850,13 @@ class PufParticleSystem {
             }
             
             if (this.innerMaterial) this.innerMaterial.color.setHex(0xffffff);
-            if (this.outerMaterial && this.outerParticles) {
-                const vertexShader = `
-                    void main() {
-                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-                        float distance = length(mvPosition.xyz);
-                        float baseSize = ${this.outerParams.size.toFixed(6)};
-                        float maxSize = ${this.outerParams.maxSize.toFixed(6)};
-                        float calculatedSize = (baseSize * 1000.0) / distance;
-                        gl_PointSize = min(calculatedSize, maxSize * 1000.0);
-                        gl_Position = projectionMatrix * mvPosition;
-                    }
-                `;
-
-                const fragmentShader = `
-                    void main() {
-                        float dist = length(gl_PointCoord - vec2(0.5));
-                        if (dist > 0.5) discard;
-                        gl_FragColor = vec4(0.67, 0.67, 0.67, 1.0);
-                    }
-                `;
-
-                const newMaterial = new THREE.ShaderMaterial({
-                    vertexShader: vertexShader,
-                    fragmentShader: fragmentShader,
-                    transparent: false
+            if (this.outerMaterial) {
+                const startColor = this.outerMaterial.uniforms.color.value.clone();
+                const targetColor = new THREE.Color(0xaaaaaa);
+                const colorAnimation = { t: 0 };
+                this.paramAnimator.animateTo(colorAnimation, 't', 1, transitionDuration, null, () => {
+                    this.outerMaterial.uniforms.color.value.lerpColors(startColor, targetColor, colorAnimation.t);
                 });
-                
-                this.outerMaterial.dispose();
-                this.outerMaterial = newMaterial;
-                this.outerParticles.material = this.outerMaterial;
-                this.outerMaterial.needsUpdate = true;
-                
-                console.log('🎨 Home mode: Outer particles restored to GRAY (0.67,0.67,0.67)');
             }
         }
         
