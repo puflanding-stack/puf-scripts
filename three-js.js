@@ -473,6 +473,7 @@ class PufParticleSystem {
             -webkit-transform: translate(-50%, -50%) scale(1) !important;
             z-index: -998 !important; 
             pointer-events: none;
+            transition: opacity 1s ease;
         `;
 
         const logoSvg = document.createElement('div');
@@ -561,7 +562,7 @@ class PufParticleSystem {
             height: 100vh !important;
             pointer-events: none;
             z-index: -999 !important;
-            transition: opacity 0.3s ease;
+            transition: opacity 1s ease;
         `;
         document.body.appendChild(this.innerGradientOverlay);
         this.updateInnerGradientOverlay();
@@ -601,6 +602,8 @@ class PufParticleSystem {
                 attributeFilter: ['style', 'class'] 
             });
         }
+        
+        document.body.style.transition = 'background-color 1s ease';
         
         checkCurrentPage();
         
@@ -705,7 +708,7 @@ class PufParticleSystem {
         }
     }
 
-    updateInnerGradientOverlay() {
+    updateInnerGradientOverlay(color = '0, 0, 0') {
         if (!this.innerGradientOverlay) return;
 
         const intensity = this.innerParams.gradientIntensity;
@@ -714,7 +717,11 @@ class PufParticleSystem {
             return;
         }
 
-        this.innerGradientOverlay.style.opacity = '1';
+        const currentOpacity = parseFloat(this.innerGradientOverlay.style.opacity);
+        if (isNaN(currentOpacity) || this.currentPageMode === 'home') {
+             this.innerGradientOverlay.style.opacity = '1';
+        }
+
         const breakpoint = this.getCurrentBreakpoint();
         const sphereSize = this.sphereSizes[breakpoint];
         const viewportWidth = window.innerWidth;
@@ -734,7 +741,7 @@ class PufParticleSystem {
         const isMobile = window.innerWidth <= 768;
         const viewportUnit = isMobile && CSS.supports('height', '100svh') ? 'svh' : 'vh';
 
-        this.innerGradientOverlay.style.background = `radial-gradient(${gradientSize}${viewportUnit} at 50% 50%, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.85) ${opaqueStop}%, transparent ${transparentStart}%)`;
+        this.innerGradientOverlay.style.background = `radial-gradient(${gradientSize}${viewportUnit} at 50% 50%, rgba(${color}, 0.85) 0%, rgba(${color}, 0.85) ${opaqueStop}%, transparent ${transparentStart}%)`;
     }
 
     updateMouseRotation() {
@@ -770,11 +777,55 @@ class PufParticleSystem {
     }
 
     updateParticleColors(mode = 'home') {
+        if (this.isTransitioning) return;
+        this.isTransitioning = true;
+
         this.currentPageMode = mode;
-        const root = document.documentElement;
         
+        const transitionDuration = 1000;
+
         if (mode === 'about') {
-            root.style.setProperty('--bg-color', '#EBEBEB');
+            document.body.style.backgroundColor = '#EBEBEB';
+
+            // Logo
+            if (this.logoContainer) {
+                const logoAnimation = { opacity: 1 };
+                this.paramAnimator.animateTo(logoAnimation, 'opacity', 0, transitionDuration, () => {
+                    this.logoContainer.style.display = 'none';
+                }, () => {
+                    this.logoContainer.style.opacity = logoAnimation.opacity;
+                });
+            }
+
+            // Inner Sphere and Gradient
+            if (this.backgroundSphere && this.innerGradientOverlay) {
+                this.backgroundSphere.material.transparent = true;
+
+                const animationProps = { t: 0 };
+                this.paramAnimator.animateTo(animationProps, 't', 1, transitionDuration, () => {
+                    this.backgroundSphere.visible = false;
+                    this.innerGradientOverlay.style.display = 'none';
+                    this.innerParticles.visible = false;
+                    this.isTransitioning = false;
+                }, () => {
+                    // Color
+                    const black = new THREE.Color(0x000000);
+                    const white = new THREE.Color(0xffffff);
+                    this.backgroundSphere.material.color.lerpColors(black, white, animationProps.t);
+                    
+                    const r = Math.round(0 + (255 - 0) * animationProps.t);
+                    const g = Math.round(0 + (255 - 0) * animationProps.t);
+                    const b = Math.round(0 + (255 - 0) * animationProps.t);
+                    this.updateInnerGradientOverlay(`${r}, ${g}, ${b}`);
+
+                    // Opacity
+                    const newOpacity = 1 - animationProps.t;
+                    this.backgroundSphere.material.opacity = newOpacity;
+                    this.innerGradientOverlay.style.opacity = newOpacity;
+                });
+            } else {
+                 this.isTransitioning = false;
+            }
             
             const radialButton = document.querySelector('.link-radial.js-hover');
             if (radialButton) {
@@ -890,11 +941,6 @@ class PufParticleSystem {
             console.log('🔍 Body scroll yüksekliği:', document.body.scrollHeight + 'px');
             console.log('🔍 Viewport yüksekliği:', window.innerHeight + 'px');
 
-            if (this.logoContainer) this.logoContainer.style.display = 'none';
-            if (this.innerGradientOverlay) this.innerGradientOverlay.style.display = 'none';
-            if (this.innerParticles) this.innerParticles.visible = false;
-            if (this.backgroundSphere) this.backgroundSphere.visible = false;
-            
             if (this.outerMaterial && this.outerParticles) {
                 const vertexShader = `
                     void main() {
@@ -930,7 +976,50 @@ class PufParticleSystem {
                 console.log('🎨 About mode: Outer particles set to BLACK (0,0,0)');
             }
         } else {
-            root.style.setProperty('--bg-color', '#000000');
+            document.body.style.backgroundColor = '#000000';
+
+            // Make elements visible before animation
+            if (this.logoContainer) this.logoContainer.style.display = 'block';
+            if (this.innerGradientOverlay) this.innerGradientOverlay.style.display = 'block';
+            if (this.innerParticles) this.innerParticles.visible = true;
+            if (this.backgroundSphere) {
+                this.backgroundSphere.visible = true;
+                this.backgroundSphere.material.transparent = true;
+            }
+
+            // Logo
+            if (this.logoContainer) {
+                const logoAnimation = { opacity: 0 };
+                this.paramAnimator.animateTo(logoAnimation, 'opacity', 1, transitionDuration, null, () => {
+                    this.logoContainer.style.opacity = logoAnimation.opacity;
+                });
+            }
+
+            // Inner Sphere and Gradient
+            if (this.backgroundSphere && this.innerGradientOverlay) {
+                const animationProps = { t: 0 };
+                this.paramAnimator.animateTo(animationProps, 't', 1, transitionDuration, () => {
+                     this.isTransitioning = false;
+                     this.backgroundSphere.material.transparent = false;
+                }, () => {
+                    // Color
+                    const white = new THREE.Color(0xffffff);
+                    const black = new THREE.Color(0x000000);
+                    this.backgroundSphere.material.color.lerpColors(white, black, animationProps.t);
+
+                    const r = Math.round(255 - (255 - 0) * animationProps.t);
+                    const g = Math.round(255 - (255 - 0) * animationProps.t);
+                    const b = Math.round(255 - (255 - 0) * animationProps.t);
+                    this.updateInnerGradientOverlay(`${r}, ${g}, ${b}`);
+
+                    // Opacity
+                    const newOpacity = animationProps.t;
+                    this.backgroundSphere.material.opacity = newOpacity;
+                    this.innerGradientOverlay.style.opacity = newOpacity;
+                });
+            } else {
+                this.isTransitioning = false;
+            }
             
             document.body.classList.remove('about-mode');
             
@@ -1016,11 +1105,6 @@ class PufParticleSystem {
                     linkText.style.color = '';
                 }
             }
-            
-            if (this.innerParticles) this.innerParticles.visible = this.innerParams.visible;
-            if (this.backgroundSphere) this.backgroundSphere.visible = this.innerParams.visible;
-            if (this.logoContainer) this.logoContainer.style.display = this.logoParams.visible ? 'block' : 'none';
-            if (this.innerGradientOverlay) this.innerGradientOverlay.style.display = 'block';
             
             if (this.innerMaterial) this.innerMaterial.color.setHex(0xffffff);
             if (this.outerMaterial && this.outerParticles) {
