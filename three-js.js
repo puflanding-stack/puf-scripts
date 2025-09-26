@@ -1,3 +1,4 @@
+ /*
  class ParameterAnimator {
     constructor() {
         this.animations = new Map();
@@ -1178,3 +1179,5 @@ if (typeof module !== 'undefined' && module.exports) {
   document.addEventListener('DOMContentLoaded', function() {
     window.pufParticleSystem = new PufParticleSystem();
   });
+
+  */
