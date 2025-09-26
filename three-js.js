@@ -769,16 +769,6 @@ class PufParticleSystem {
                     this.innerParticles.visible = false;
                     this.isTransitioning = false;
                 }, () => {
-                    // Color
-                    const black = new THREE.Color(0x000000);
-                    const white = new THREE.Color(0xffffff);
-                    this.backgroundSphere.material.color.lerpColors(black, white, animationProps.t);
-                    
-                    const r = Math.round(0 + (255 - 0) * animationProps.t);
-                    const g = Math.round(0 + (255 - 0) * animationProps.t);
-                    const b = Math.round(0 + (255 - 0) * animationProps.t);
-                    this.updateInnerGradientOverlay(`${r}, ${g}, ${b}`);
-
                     // Opacity
                     const newOpacity = 1 - animationProps.t;
                     this.backgroundSphere.material.opacity = newOpacity;
